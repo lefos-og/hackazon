@@ -64,20 +64,19 @@ class DBSettingsStep extends AbstractStep
 
         try {
             $dsn = "mysql:host={$this->host};port={$this->port}";
-            // Try to connect
             $conn = new \PDO($dsn, $this->user, $this->password);
+            $conn->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $conn->query('USE `'.$this->db.'`');
-
-            if (!$stmt || $stmt->errorCode() > 0) {
+            try {
+                $stmt = $conn->prepare("USE `{$this->db}`");
+                $stmt->execute();
+            } catch (\PDOException $e) {
+                // If the database doesn't exist and `createIfNotExists` is true, create it
                 if ($this->createIfNotExists) {
-                    $stmt = $conn->query("CREATE DATABASE `".$this->db."` COLLATE 'utf8_general_ci'");
-
-                    if (!$stmt || $stmt->errorCode() > 0) {
-                        throw new \Exception('Can\'t create database ' . $this->db);
-                    }
+                    $createStmt = $conn->prepare("CREATE DATABASE `{$this->db}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci");
+                    $createStmt->execute();
                 } else {
-                    throw new \Exception('Can\'t connect to database ' . $this->db);
+                    throw new \Exception("Database '{$this->db}' does not exist, and creation is disabled.");
                 }
             }
 
