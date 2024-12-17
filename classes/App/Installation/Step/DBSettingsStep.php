@@ -63,6 +63,11 @@ class DBSettingsStep extends AbstractStep
         }
 
         try {
+
+            // Validate database name
+            if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->db)) {
+                throw new \Exception('Invalid database name.');
+            }
             $dsn = "mysql:host={$this->host};port={$this->port}";
             // Try to connect
             $conn = new \PDO($dsn, $this->user, $this->password);
