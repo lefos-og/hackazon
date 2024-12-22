@@ -1,7 +1,7 @@
 <?php $baseImgPath = $this->pixie->getParameter('parameters.use_external_dir') ? '/upload/download.php?image=' : '/user_pictures/'; ?>
 <div class="row">
 	<div class="col-xs-8">
-		<table class="table profile-table table-striped">
+		<th class="table profile-table table-striped" ></th>
 		<thead>
 			<tr>
 				<td>
