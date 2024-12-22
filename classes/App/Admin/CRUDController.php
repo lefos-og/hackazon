@@ -264,84 +264,84 @@ class CRUDController extends Controller
     protected function prepareListFields()
     {
         $listFields = $this->getListFields();
-
         $result = [];
+
         foreach ($listFields as $field => &$data) {
-            if (is_numeric($field) && is_string($data)) {
-                $field = $data;
-                $data = [];
-            }
-
-            $data['original_field_name'] = $field;
-
-            if (!$data['type'] && $field != $this->model->id_field) {
-                $data['type'] = 'text';
-            }
-
-            if (!array_key_exists('title', $data) || $data['title'] === null) {
-                $data['title'] = ucwords(implode(' ', preg_split('/_+/', $field, -1, PREG_SPLIT_NO_EMPTY)));
-            }
-
-            $this->checkSubProp($field, $data);
-
-            if ($data['type'] == 'link' || $data['is_link']) {
-                $data['is_link'] = true;
-                if (!$data['template']) {
-                    $data['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
-                }
-            }
-
-            if ($data['type'] == 'image') {
-                if (!$data['max_width']) {
-                    $data['max_width'] = 40;
-                }
-
-                if (!$data['max_height']) {
-                    $data['max_height'] = 30;
-                }
-
-                if (!$data['dir_path']) {
-                    $data['dir_path'] = '/images/';
-                }
-
-                if (!array_key_exists('orderable', $data)) {
-                    $data['orderable'] = false;
-                }
-
-                if (!array_key_exists('searching', $data)) {
-                    $data['searching'] = false;
-                }
-            }
-
-            if ($data['extra']) {
-                $data['orderable'] = false;
-                $data['searching'] = false;
-            }
-
-            if (!array_key_exists('orderable', $data)) {
-                $data['orderable'] = true;
-            }
-
-            if (!array_key_exists('searching', $data)) {
-                $data['searching'] = true;
-            }
-
+            $data = $this->normalizeFieldData($field, $data);
+            $this->handleFieldTypeSpecifics($field, $data);
             $field = $this->recursiveCreateRelativeFieldName($field, $data);
-
             $result[$field] = $data;
         }
-        $listFields = $result;
-        unset($data);
-        if (array_key_exists($this->model->id_field, $listFields)) {
-            if (!array_key_exists('type', $listFields[$this->model->id_field])) {
-                $listFields[$this->model->id_field]['type'] = 'link';
-                $listFields[$this->model->id_field]['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
-            }
-            $listFields[$this->model->id_field]['width'] = '60';
-        }
 
-        return $listFields;
+        $listFields = $result;
+        $this->finalizeIdField($listFields);
+
+        unset($data);
     }
+    private function normalizeFieldData(&$field, &$data)
+{
+    if (is_numeric($field) && is_string($data)) {
+        $field = $data;
+        $data = [];
+    }
+
+    $data['original_field_name'] = $field;
+
+    if (empty($data['type']) && $field != $this->model->id_field) {
+        $data['type'] = 'text';
+    }
+
+    if (empty($data['title'])) {
+        $data['title'] = ucwords(implode(' ', preg_split('/_+/', $field, -1, PREG_SPLIT_NO_EMPTY)));
+    }
+
+    $this->checkSubProp($field, $data);
+
+    return $data;
+}
+private function handleFieldTypeSpecifics(&$field, &$data)
+{
+    if ($data['type'] === 'link' || !empty($data['is_link'])) {
+        $data['is_link'] = true;
+        if (empty($data['template'])) {
+            $data['template'] = '/admin/' . $this->alias . '/edit/%' . $this->model->id_field . '%';
+        }
+    }
+
+    if ($data['type'] === 'image') {
+        $this->handleImageField($data);
+    }
+
+    if (!empty($data['extra'])) {
+        $data['orderable'] = false;
+        $data['searching'] = false;
+    }
+
+    $data['orderable'] = $data['orderable'] ?? true;
+    $data['searching'] = $data['searching'] ?? true;
+}
+private function handleImageField(&$data)
+{
+    $data['max_width'] = $data['max_width'] ?? 40;
+    $data['max_height'] = $data['max_height'] ?? 30;
+    $data['dir_path'] = $data['dir_path'] ?? '/images/';
+    $data['orderable'] = $data['orderable'] ?? false;
+    $data['searching'] = $data['searching'] ?? false;
+}
+
+private function finalizeIdField(&$listFields)
+{
+    $idField = $this->model->id_field;
+
+    if (isset($listFields[$idField])) {
+        $listFields[$idField]['type'] = $listFields[$idField]['type'] ?? 'link';
+        $listFields[$idField]['template'] = $listFields[$idField]['template'] ?? '/admin/' . $this->alias . '/edit/%' . $idField . '%';
+        $listFields[$idField]['width'] = '60';
+    }
+}
+
+
+
 
     protected function getEditFields()
     {
